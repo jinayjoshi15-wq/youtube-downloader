@@ -61,9 +61,13 @@ app.post('/api/info', async (req, res) => {
 
     exec(command, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
         if (error) {
-            console.error('Error fetching video info:', error.message);
+            console.error('=== YT-DLP ERROR ===');
+            console.error('Command:', command);
+            console.error('Error:', error.message);
+            console.error('Error code:', error.code);
             console.error('stderr:', stderr);
             console.error('stdout:', stdout);
+            console.error('===================');
 
             // Handle specific error cases
             if (stderr.includes('Video unavailable') || stderr.includes('Private video')) {
@@ -74,7 +78,10 @@ app.post('/api/info', async (req, res) => {
                 return res.status(451).json({ error: 'Video is geo-restricted in your region' });
             }
 
-            return res.status(500).json({ error: 'Failed to fetch video information. Please check the URL.' });
+            return res.status(500).json({
+                error: 'Failed to fetch video information. Please check the URL.',
+                debug: error.code === 'ENOENT' ? 'yt-dlp not found' : error.message
+            });
         }
 
         try {
