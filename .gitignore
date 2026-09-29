@@ -1,0 +1,12 @@
+node_modules/
+temp_downloads/
+*.log
+npm-debug.log*
+.env
+.DS_Store
+.vscode/
+.idea/
+*.mp4
+*.mp3
+*.webm
+*.mkv

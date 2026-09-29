@@ -1,0 +1,23 @@
+app:
+  name: youtube-downloader
+  services:
+    - name: web
+      type: web
+      build:
+        buildpack: nodejs
+      instance:
+        memory: 2GB
+      env:
+        - key: NODE_ENV
+          value: production
+      ports:
+        - port: 3001
+          protocol: http
+      healthcheck:
+        http:
+          path: /api/health
+      run: |
+        apt-get update && apt-get install -y python3 python3-pip
+        pip3 install yt-dlp
+        npm install
+        npm start
