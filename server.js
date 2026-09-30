@@ -8,6 +8,30 @@ const sanitizeFilename = require('sanitize-filename');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Find yt-dlp executable
+let YT_DLP_PATH = 'yt-dlp';
+const possiblePaths = [
+    'yt-dlp',
+    '/usr/local/bin/yt-dlp',
+    '/usr/bin/yt-dlp',
+    '/app/yt-dlp',
+    path.join(__dirname, 'yt-dlp')
+];
+
+// Check which path works
+for (const testPath of possiblePaths) {
+    try {
+        require('child_process').execSync(`${testPath} --version`, { stdio: 'ignore' });
+        YT_DLP_PATH = testPath;
+        console.log(`✓ Found yt-dlp at: ${testPath}`);
+        break;
+    } catch (e) {
+        // Try next path
+    }
+}
+
+console.log(`Using yt-dlp path: ${YT_DLP_PATH}`);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -57,7 +81,7 @@ app.post('/api/info', async (req, res) => {
         return res.status(400).json({ error: 'Invalid or missing YouTube URL' });
     }
 
-    const command = `yt-dlp --dump-json --no-warnings ${escapeShellArg(url)}`;
+    const command = `${YT_DLP_PATH} --dump-json --no-warnings ${escapeShellArg(url)}`;
 
     exec(command, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
         if (error) {
@@ -178,7 +202,7 @@ app.post('/api/download', async (req, res) => {
 
     ytDlpArgs.push(url);
 
-    const ytDlp = spawn('yt-dlp', ytDlpArgs);
+    const ytDlp = spawn(YT_DLP_PATH, ytDlpArgs);
 
     ytDlp.stdout.on('data', (data) => {
         const output = data.toString();
@@ -250,16 +274,18 @@ app.get('/api/progress/:id', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    exec('yt-dlp --version', (error, stdout) => {
+    exec(`${YT_DLP_PATH} --version`, (error, stdout) => {
         if (error) {
             return res.status(500).json({
                 status: 'error',
-                message: 'yt-dlp not found. Please install it first.'
+                message: 'yt-dlp not found. Please install it first.',
+                searched_paths: possiblePaths
             });
         }
         res.json({
             status: 'ok',
-            ytdlp_version: stdout.trim()
+            ytdlp_version: stdout.trim(),
+            ytdlp_path: YT_DLP_PATH
         });
     });
 });
